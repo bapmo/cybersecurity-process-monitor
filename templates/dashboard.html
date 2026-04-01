@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cybersecurity Process Monitor</title>
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0f;
+            color: #e4e4e7;
+            overflow-x: hidden;
+        }
+
+        /* Modern scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a1f;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #3b82f6;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #2563eb;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #0a0a0f 0%, #111114 100%);
+            border-bottom: 1px solid #27272a;
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            font-size: 28px;
+        }
+
+        .logo h1 {
+            font-size: 20px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-badge.live {
+            background: #10b981;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .stat-card {
+            background: #111114;
+            border: 1px solid #27272a;
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: #3b82f6;
+            box-shadow: 0 8px 32px rgba(59, 130, 246, 0.1);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .stat-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #71717a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-icon {
+            font-size: 24px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-sub {
+            font-size: 12px;
+            color: #71717a;
+        }
+
+        .progress-bar {
+            background: #27272a;
+            border-radius: 8px;
+            height: 8px;
+            margin-top: 12px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            height: 100%;
+            border-radius: 8px;
+            transition: width 0.3s ease;
+        }
+
+        .controls {
+            padding: 1.5rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid #27272a;
+            background: #111114;
+            color: #e4e4e7;
+        }
+
+        .btn:hover {
+            background: #1a1a1f;
+            border-color: #3b82f6;
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-danger {
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+
+        .btn-danger:hover {
+            background: #ef4444;
+            color: white;
+        }
+
+        .search-box {
+            flex: 1;
+            max-width: 300px;
+            padding: 8px 16px;
+            background: #111114;
+            border: 1px solid #27272a;
+            border-radius: 8px;
+            color: #e4e4e7;
+            font-size: 14px;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .table-container {
+            padding: 0 2rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            overflow-x: auto;
+        }
+
+        .process-table {
+            background: #111114;
+            border: 1px solid #27272a;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 1rem;
+            background: #0a0a0f;
+            color: #71717a;
+            font-weight: 500;
+            font-size: 12px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #27272a;
+        }
+
+        td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #27272a;
+            font-size: 13px;
+        }
+
+        tr {
+            transition: all 0.2s ease;
+        }
+
+        tr:hover {
+            background: #1a1a1f;
+            cursor: pointer;
+            transform: scale(1.01);
+        }
+
+        .high-cpu td:nth-child(3) {
+            color: #f97316;
+            font-weight: 600;
+        }
+
+        .high-memory td:nth-child(4) {
+            color: #ef4444;
+            font-weight: 600;
+        }
+
+        .status-badge-small {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .status-running {
+            background: #10b98120;
+            color: #10b981;
+        }
+
+        .status-stopped {
+            background: #6b728020;
+            color: #6b7280;
+        }
+
+        /* Glassmorphic Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(12px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                backdrop-filter: blur(0px);
+            }
+            to {
+                opacity: 1;
+                backdrop-filter: blur(12px);
+            }
+        }
+
+        .modal-content {
+            background: rgba(17, 17, 20, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 24px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.4s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .modal-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            color: #71717a;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+        }
+
+        .close-modal:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            transform: rotate(90deg);
+        }
+
+        .process-details {
+            margin-bottom: 2rem;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .detail-label {
+            font-size: 0.875rem;
+            color: #71717a;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #e4e4e7;
+            font-family: 'Courier New', monospace;
+        }
+
+        .detail-value.highlight {
+            color: #f97316;
+        }
+
+        .detail-value.danger {
+            color: #ef4444;
+        }
+
+        .detail-value.success {
+            color: #10b981;
+        }
+
+        .resource-bar {
+            margin-top: 0.5rem;
+            background: rgba(39, 39, 42, 0.5);
+            border-radius: 8px;
+            height: 6px;
+            overflow: hidden;
+        }
+
+        .resource-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+            border-radius: 8px;
+        }
+
+        .resource-fill.cpu {
+            background: linear-gradient(90deg, #f97316, #ef4444);
+        }
+
+        .resource-fill.memory {
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .btn-glass {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.5);
+            color: #3b82f6;
+            padding: 8px 20px;
+            border-radius: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-glass:hover {
+            background: rgba(59, 130, 246, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn-glass-danger {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            color: #ef4444;
+        }
+
+        .btn-glass-danger:hover {
+            background: rgba(239, 68, 68, 0.4);
+        }
+
+        /* Console */
+        .console {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 400px;
+            background: rgba(17, 17, 20, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid #27272a;
+            border-radius: 12px;
+            z-index: 100;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .console-header {
+            padding: 0.75rem 1rem;
+            background: rgba(10, 10, 15, 0.8);
+            border-bottom: 1px solid #27272a;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .console-content {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 0.75rem;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .console-line {
+            padding: 4px 0;
+            border-bottom: 1px solid #27272a;
+        }
+
+        .console-line.success {
+            color: #10b981;
+        }
+
+        .console-line.error {
+            color: #ef4444;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #71717a;
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+            
+            .controls {
+                padding: 1rem;
+            }
+            
+            .table-container {
+                padding: 1rem;
+            }
+            
+            .console {
+                width: calc(100% - 40px);
+                right: 20px;
+                bottom: 20px;
+            }
+            
+            .modal-content {
+                padding: 1.5rem;
+                margin: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">
+                <span class="logo-icon">🔒</span>
+                <h1>Process Monitor</h1>
+                <span class="status-badge live" id="connectionStatus">● Live</span>
+            </div>
+            <div id="timestamp" style="font-size: 12px; color: #71717a;"></div>
+        </div>
+    </div>
+
+    <div class="stats-grid" id="statsGrid">
+        <div class="loading">Loading system statistics...</div>
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-primary" onclick="refreshData()">🔄 Refresh</button>
+        <button class="btn" id="autoRefreshBtn" onclick="toggleAutoRefresh()">⏺ Auto-refresh ON</button>
+        <button class="btn" onclick="exportData()">📊 Export CSV</button>
+        <button class="btn btn-danger" onclick="showPowerShellModal()">⚡ PowerShell</button>
+        <input type="text" class="search-box" placeholder="🔍 Filter processes..." id="filterInput">
+        <span id="processCount" style="font-size: 12px; color: #71717a;"></span>
+    </div>
+
+    <div class="table-container">
+        <div class="process-table">
+            <table id="processTable">
+                <thead>
+                    <tr>
+                        <th>PID</th>
+                        <th>Process Name</th>
+                        <th>CPU%</th>
+                        <th>Memory%</th>
+                        <th>Status</th>
+                        <th>User</th>
+                        <th>Threads</th>
+                        <th>Command</th>
+                    </tr>
+                </thead>
+                <tbody id="processTableBody">
+                    <tr>
+                        <td colspan="8" class="loading">Loading processes...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Glassmorphic Modal -->
+    <div class="modal" id="processModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>
+                    <i class="fas fa-chart-line"></i> Process Details
+                </h2>
+                <button class="close-modal" onclick="closeProcessModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="process-details" id="modalDetails">
+                <!-- Dynamic content will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-glass" onclick="closeProcessModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button class="btn-glass btn-glass-danger" id="killProcessBtn" onclick="killModalProcess()">
+                    <i class="fas fa-skull"></i> Terminate Process
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="console" id="console">
+        <div class="console-header" onclick="toggleConsole()">
+            <span>📟 PowerShell Console</span>
+            <span>_</span>
+        </div>
+        <div class="console-content" id="consoleContent">
+            <div class="console-line success">✓ Connected to monitor</div>
+        </div>
+    </div>
+
+    <div class="modal" id="psModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-terminal"></i> PowerShell Command</h2>
+                <button class="close-modal" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="psCommand" class="search-box" style="width: 100%;" placeholder="Enter PowerShell command...">
+                <div id="psOutput" style="margin-top: 12px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-glass" onclick="closeModal()">Cancel</button>
+                <button class="btn-glass btn-primary" onclick="executePowerShell()">Execute</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        let autoRefresh = true;
+        let currentProcesses = [];
+        let refreshInterval = null;
+        let currentSelectedProcess = null;
+
+        // Initialize Socket.IO connection
+        function initSocket() {
+            console.log('Initializing socket connection...');
+            socket = io();
+            
+            socket.on('connect', function() {
+                console.log('Connected to server');
+                updateConnectionStatus(true);
+                addConsoleLine('Connected to monitoring server', 'success');
+            });
+            
+            socket.on('disconnect', function() {
+                console.log('Disconnected from server');
+                updateConnectionStatus(false);
+                addConsoleLine('Disconnected from server', 'error');
+            });
+            
+            socket.on('process_update', function(data) {
+                console.log('Received update:', data.count, 'processes');
+                updateStats(data.stats);
+                updateProcessTable(data.processes);
+                updateTimestamp(data.timestamp);
+            });
+            
+            socket.on('connected', function(data) {
+                console.log('Server confirmed connection:', data);
+            });
+        }
+        
+        // Fallback to REST API if WebSocket fails
+        async function fetchProcessesViaAPI() {
+            try {
+                const response = await fetch('/api/processes');
+                const data = await response.json();
+                if (data.success) {
+                    updateProcessTable(data.processes);
+                    addConsoleLine(`Loaded ${data.count} processes via REST API`, 'success');
+                    return data.processes;
+                }
+            } catch (error) {
+                console.error('API fetch error:', error);
+                addConsoleLine(`API error: ${error.message}`, 'error');
+            }
+            return [];
+        }
+        
+        async function fetchStatsViaAPI() {
+            try {
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+                updateStats(stats);
+                return stats;
+            } catch (error) {
+                console.error('Stats fetch error:', error);
+                return null;
+            }
+        }
+
+        function updateConnectionStatus(connected) {
+            const badge = document.getElementById('connectionStatus');
+            if (connected) {
+                badge.textContent = '● Live';
+                badge.className = 'status-badge live';
+            } else {
+                badge.textContent = '○ Offline';
+                badge.className = 'status-badge';
+                badge.style.background = '#ef4444';
+                badge.style.color = 'white';
+            }
+        }
+
+        function updateTimestamp(timestamp) {
+            if (timestamp) {
+                const date = new Date(timestamp);
+                document.getElementById('timestamp').textContent = date.toLocaleTimeString();
+            } else {
+                document.getElementById('timestamp').textContent = new Date().toLocaleTimeString();
+            }
+        }
+
+        function updateStats(stats) {
+            if (!stats || !stats.cpu) return;
+            
+            const statsGrid = document.getElementById('statsGrid');
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">CPU Usage</span>
+                        <span class="stat-icon">💻</span>
+                    </div>
+                    <div class="stat-value">${stats.cpu.total}%</div>
+                    <div class="stat-sub">${stats.cpu.count} Cores</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${stats.cpu.total}%"></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Memory</span>
+                        <span class="stat-icon">🧠</span>
+                    </div>
+                    <div class="stat-value">${stats.memory.percent}%</div>
+                    <div class="stat-sub">${formatBytes(stats.memory.used)} / ${formatBytes(stats.memory.total)}</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${stats.memory.percent}%"></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Disk Usage</span>
+                        <span class="stat-icon">💾</span>
+                    </div>
+                    <div class="stat-value">${stats.disk.percent}%</div>
+                    <div class="stat-sub">${formatBytes(stats.disk.used)} / ${formatBytes(stats.disk.total)}</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${stats.disk.percent}%"></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">System Info</span>
+                        <span class="stat-icon">🖥️</span>
+                    </div>
+                    <div class="stat-value">${stats.system.platform}</div>
+                    <div class="stat-sub">${stats.system.hostname}<br>Uptime: ${formatUptime(stats.system.uptime)}</div>
+                </div>
+            `;
+        }
+
+        function showProcessDetails(process) {
+            currentSelectedProcess = process;
+            
+            const cpuClass = process.cpu_percent > 50 ? 'danger' : (process.cpu_percent > 25 ? 'highlight' : '');
+            const memoryClass = process.memory_percent > 50 ? 'danger' : (process.memory_percent > 25 ? 'highlight' : '');
+            
+            const modalHtml = `
+                <div class="detail-row">
+                    <span class="detail-label"><i class="fas fa-hashtag"></i> Process ID</span>
+                    <span class="detail-value"><strong>${process.pid}</strong></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label"><i class="fas fa-cube"></i> Process Name</span>
+                    <span class="detail-value"><strong>${escapeHtml(process.name)}</strong></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label"><i class="fas fa-microchip"></i> CPU Usage</span>
+                    <div style="flex: 1; margin-left: 1rem;">
+                        <span class="detail-value ${cpuClass}"><strong>${process.cpu_percent}%</strong></span>
+                        <div class="resource-bar">
+                            <div class="resource-fill cpu" style="width: ${Math.min(process.cpu_percent, 100)}%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label"><i class="fas fa-memory"></i> Memory Usage</span>
+                    <div style="flex: 1; margin-left: 1rem;">
+                        <span class="detail-value ${memoryClass}"><strong>${process.memory_percent}%</strong></span>
+                        <div class="resource-bar">
+                            <div class="resource-fill memory" style="width: ${Math.min(process.memory_percent, 100)}%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label"><i class="fas fa-flag-checkered"></i> Status</span>
+                    <span class="detail-value success"><strong>${process.status}</strong></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label"><i class="fas fa-user"></i> User</span>
+                    <span class="detail-value">${escapeHtml(process.username)}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label"><i class="fas fa-code-branch"></i> Threads</span>
+                    <span class="detail-value">${process.threads}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label"><i class="fas fa-clock"></i> Created</span>
+                    <span class="detail-value">${process.created || 'N/A'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label"><i class="fas fa-terminal"></i> Command</span>
+                    <span class="detail-value" style="font-size: 11px; font-family: monospace;">${escapeHtml(process.command)}</span>
+                </div>
+            `;
+            
+            document.getElementById('modalDetails').innerHTML = modalHtml;
+            document.getElementById('processModal').style.display = 'flex';
+        }
+
+        function closeProcessModal() {
+            document.getElementById('processModal').style.display = 'none';
+            currentSelectedProcess = null;
+        }
+
+        function killModalProcess() {
+            if (currentSelectedProcess) {
+                closeProcessModal();
+                killProcess(currentSelectedProcess.pid);
+            }
+        }
+
+        function updateProcessTable(processes) {
+            if (!processes || processes.length === 0) {
+                const tbody = document.getElementById('processTableBody');
+                tbody.innerHTML = '<tr><td colspan="8" class="loading">No processes found</td></tr>';
+                document.getElementById('processCount').textContent = '0 processes';
+                return;
+            }
+            
+            currentProcesses = processes;
+            const filter = document.getElementById('filterInput').value.toLowerCase();
+            
+            let filtered = processes;
+            if (filter) {
+                filtered = processes.filter(p => p.name && p.name.toLowerCase().includes(filter));
+            }
+            
+            document.getElementById('processCount').textContent = `${filtered.length} processes`;
+            
+            if (filtered.length === 0) {
+                const tbody = document.getElementById('processTableBody');
+                tbody.innerHTML = '<tr><td colspan="8" class="loading">No matching processes found</td></tr>';
+                return;
+            }
+            
+            const tbody = document.getElementById('processTableBody');
+            tbody.innerHTML = filtered.map(proc => `
+                <tr onclick="showProcessDetails(${JSON.stringify(proc).replace(/"/g, '&quot;')})" class="${proc.cpu_percent > 50 ? 'high-cpu' : ''} ${proc.memory_percent > 50 ? 'high-memory' : ''}">
+                    <td><strong>${proc.pid}</strong></td>
+                    <td>${escapeHtml(proc.name || 'N/A')}</td>
+                    <td>${proc.cpu_percent || 0}%</td>
+                    <td>${proc.memory_percent || 0}%</td>
+                    <td><span class="status-badge-small status-${proc.status || 'running'}">${proc.status || 'running'}</span></td>
+                    <td style="font-size: 11px;">${escapeHtml(proc.username || 'N/A')}</td>
+                    <td>${proc.threads || 0}</td>
+                    <td style="font-size: 11px; font-family: monospace;">${escapeHtml(proc.command || 'N/A')}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Override the showProcessDetails function to accept an object
+        window.showProcessDetails = function(procData) {
+            if (typeof procData === 'string') {
+                procData = JSON.parse(procData);
+            }
+            showProcessDetails(procData);
+        };
+
+        async function killProcess(pid) {
+            if (!confirm(`⚠️ Are you sure you want to terminate process ${pid}?\n\nThis action cannot be undone!`)) return;
+            
+            try {
+                const response = await fetch(`/api/kill/${pid}`, { method: 'POST' });
+                const result = await response.json();
+                
+                if (result.success) {
+                    addConsoleLine(`✓ ${result.message}`, 'success');
+                    refreshData();
+                } else {
+                    addConsoleLine(`✗ ${result.message}`, 'error');
+                }
+            } catch (error) {
+                addConsoleLine(`✗ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function refreshData() {
+            addConsoleLine('Refreshing data...');
+            
+            if (socket && socket.connected) {
+                addConsoleLine('Using WebSocket connection');
+            } else {
+                addConsoleLine('WebSocket not available, using REST API', 'error');
+                await fetchProcessesViaAPI();
+                await fetchStatsViaAPI();
+            }
+        }
+
+        async function exportData() {
+            if (currentProcesses.length === 0) {
+                addConsoleLine('No data to export');
+                return;
+            }
+            
+            const headers = ['PID', 'Name', 'CPU%', 'Memory%', 'Status', 'User', 'Threads', 'Command', 'Created'];
+            const rows = currentProcesses.map(p => [
+                p.pid, p.name, p.cpu_percent, p.memory_percent, 
+                p.status, p.username, p.threads, p.command, p.created
+            ]);
+            
+            const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `process_export_${new Date().toISOString().slice(0,19)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            addConsoleLine(`✓ Exported ${currentProcesses.length} processes to CSV`, 'success');
+        }
+
+        function toggleAutoRefresh() {
+            autoRefresh = !autoRefresh;
+            const btn = document.getElementById('autoRefreshBtn');
+            btn.textContent = autoRefresh ? '⏺ Auto-refresh ON' : '⏸ Auto-refresh OFF';
+            addConsoleLine(`Auto-refresh ${autoRefresh ? 'enabled' : 'disabled'}`);
+            
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+                refreshInterval = null;
+            }
+            
+            if (autoRefresh) {
+                refreshInterval = setInterval(() => {
+                    refreshData();
+                }, 5000);
+            }
+        }
+
+        function showPowerShellModal() {
+            document.getElementById('psModal').style.display = 'flex';
+            document.getElementById('psCommand').value = '';
+            document.getElementById('psOutput').innerHTML = '';
+        }
+
+        async function executePowerShell() {
+            const command = document.getElementById('psCommand').value;
+            if (!command) return;
+            
+            const outputDiv = document.getElementById('psOutput');
+            outputDiv.innerHTML = '<div>Executing...</div>';
+            
+            try {
+                const response = await fetch('/api/powershell', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    outputDiv.innerHTML = `<div style="color: #10b981;">✓ Output:</div><pre style="background: rgba(10, 10, 15, 0.5); padding: 8px; border-radius: 4px; margin-top: 8px; overflow-x: auto;">${escapeHtml(result.output)}</pre>`;
+                    addConsoleLine(`Executed: ${command}`, 'success');
+                } else {
+                    outputDiv.innerHTML = `<div style="color: #ef4444;">✗ Error:</div><pre style="background: rgba(10, 10, 15, 0.5); padding: 8px; border-radius: 4px; margin-top: 8px;">${escapeHtml(result.error)}</pre>`;
+                    addConsoleLine(`Error: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                outputDiv.innerHTML = `<div style="color: #ef4444;">✗ Error: ${error.message}</div>`;
+                addConsoleLine(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('psModal').style.display = 'none';
+        }
+
+        function toggleConsole() {
+            const content = document.querySelector('.console-content');
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+            } else {
+                content.style.display = 'none';
+            }
+        }
+
+        function addConsoleLine(message, type = 'info') {
+            const consoleContent = document.getElementById('consoleContent');
+            const time = new Date().toLocaleTimeString();
+            const icon = type === 'error' ? '✗' : '✓';
+            const colorClass = type === 'error' ? 'error' : 'success';
+            
+            const line = document.createElement('div');
+            line.className = `console-line ${colorClass}`;
+            line.innerHTML = `[${time}] ${icon} ${escapeHtml(message)}`;
+            consoleContent.appendChild(line);
+            line.scrollIntoView({ behavior: 'smooth' });
+            
+            while (consoleContent.children.length > 100) {
+                consoleContent.removeChild(consoleContent.firstChild);
+            }
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function formatUptime(seconds) {
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            
+            if (days > 0) return `${days}d ${hours}h`;
+            if (hours > 0) return `${hours}h ${minutes}m`;
+            return `${minutes}m`;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize
+        function init() {
+            initSocket();
+            
+            document.getElementById('filterInput').addEventListener('input', function() {
+                updateProcessTable(currentProcesses);
+            });
+            
+            setTimeout(() => {
+                refreshData();
+            }, 1000);
+            
+            refreshInterval = setInterval(() => {
+                if (autoRefresh) refreshData();
+            }, 5000);
+            
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeProcessModal();
+                    closeModal();
+                }
+            });
+            
+            // Close modal when clicking outside
+            document.getElementById('processModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeProcessModal();
+                }
+            });
+            
+            document.getElementById('psModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeModal();
+                }
+            });
+        }
+        
+        init();
+    </script>
+</body>
+</html>
